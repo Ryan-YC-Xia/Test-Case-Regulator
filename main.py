@@ -1,31 +1,40 @@
-import os
-import shutil
+import sys
+import time
 
 from prompt import Prompt
 
-MODEL_PATH = "../../../../hy-tmp/chatglm-6b"
-Responses_PATH = "./Test/Responses/"
+MODEL_PATH = sys.argv[1]
+RESP_PATH = sys.argv[2]
+CASE_PATH = sys.argv[3]
 
-from transformers import AutoTokenizer, AutoModel
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-model = AutoModel.from_pretrained(MODEL_PATH, trust_remote_code=True).half().cuda()
-model = model.eval()
+def main():
+    from transformers import AutoTokenizer, AutoModel
 
-with open("./Test/cases.txt", "r", encoding="utf-8") as case_file:
-    cases = case_file.readlines()
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
+    model = AutoModel.from_pretrained(MODEL_PATH, trust_remote_code=True).half().cuda()
+    model = model.eval()
 
-shutil.rmtree(Responses_PATH)
-os.makedirs(Responses_PATH)
+    with open(CASE_PATH, "r", encoding="utf-8") as case_file:
+        cases = case_file.readlines()
 
-case_no = 0
-for case in cases:
-    case_no += 1
-    prompt = Prompt.regulate_case(case)
-    response, history = model.chat(tokenizer, prompt, history=[])
-    response_path = Responses_PATH + "response_" + str(case_no) + ".txt"
-    with open(response_path, "w", encoding="utf-8") as response_file:
-        response_file.write(response)
-    print("Case " + str(case_no) + " response written to file.")
+    case_no = 0
+    for case in cases:
+        t0 = time.time()
+        case_no += 1
 
-print("Job Finished.")
+        prompt = Prompt.regulate_case(case)
+        response, history = model.chat(tokenizer, prompt, history=[])
+        response_path = RESP_PATH + "response_original_case_" + str(case_no) + ".txt"
+        with open(response_path, "w", encoding="utf-8") as response_file:
+            response_file.write(response)
+            print("Case " + str(case_no) + " original response written to file.")
+
+        t1 = time.time()
+        print("Case " + str(case_no) + " took: ", round(t1 - t0, 2), " seconds")
+
+    print("Job Finished.")
+
+
+if __name__ == "__main__":
+    main()
